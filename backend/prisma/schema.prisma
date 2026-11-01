@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  isActive  Boolean  @default(true) @map("is_active")
+  role      String   @default("patient")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  refreshTokens RefreshToken[]
+  exams  Exam[]
+  reports  Report[]
+  invoices  Invoice[]
+
+  @@map("users")
+}
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique @map("token_hash")
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+model Room {
+  id        Int      @id @default(autoincrement())
+  name  String
+  roomNumber  String  @map("room_number")
+  isActive  Boolean  @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  exams  Exam[]
+
+  @@map("rooms")
+}
+model Exam {
+  id        Int      @id @default(autoincrement())
+  patientId  Int  @map("patient_id")
+  patient  User  @relation(fields: [patientId], references: [id])
+  bodyPart  String  @map("body_part")
+  roomId  Int  @map("room_id")
+  room  Room  @relation(fields: [roomId], references: [id])
+  scheduledDate  DateTime  @map("scheduled_date")
+  scheduledTime  String  @map("scheduled_time")
+  status  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  reports  Report[]
+  invoices  Invoice[]
+
+  @@map("exams")
+}
+model Report {
+  id        Int      @id @default(autoincrement())
+  examId  Int  @map("exam_id")
+  exam  Exam  @relation(fields: [examId], references: [id])
+  radiologistId  Int  @map("radiologist_id")
+  radiologist  User  @relation(fields: [radiologistId], references: [id])
+  content  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("reports")
+}
+model Invoice {
+  id        Int      @id @default(autoincrement())
+  patientId  Int  @map("patient_id")
+  patient  User  @relation(fields: [patientId], references: [id])
+  examId  Int  @map("exam_id")
+  exam  Exam  @relation(fields: [examId], references: [id])
+  amount  Decimal @db.Decimal(10, 2)
+  status  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  paidAt DateTime? @map("paid_at")
+  stripeSessionId String? @unique @map("stripe_session_id")
+
+  @@map("invoices")
+}
